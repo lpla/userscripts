@@ -7,6 +7,9 @@
 // @match        https://docent.edu.gva.es/md-front/www/*
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
 // @grant        none
+// @updateURL   https://raw.githubusercontent.com/lpla/userscripts/main/icata.user.js
+// @downloadURL https://raw.githubusercontent.com/lpla/userscripts/main/itaca.user.js
+// @supportURL  https://github.com/lpla/userscripts/issues
 // ==/UserScript==
 
 (function() {
