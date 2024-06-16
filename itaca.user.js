@@ -18,7 +18,7 @@
     // Create a file input element to upload the Excel file
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.xlsx';
+    input.accept = '.xlsx, .xls';
     input.style.position = 'fixed';
     input.style.top = '10px';
     input.style.left = '10px';
