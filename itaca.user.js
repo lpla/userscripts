@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Fill Marks from Excel
 // @namespace    https://lpla.github.io/
-// @version      0.1
+// @version      0.2
 // @description  Fill student marks in Itaca form from Excel file with specific name and mark format using exact and fuzzy matching for names
 // @author       lpla
 // @match        https://docent.edu.gva.es/md-front/www/*
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
 // @grant        none
-// @updateURL   https://raw.githubusercontent.com/lpla/userscripts/main/icata.user.js
-// @downloadURL https://raw.githubusercontent.com/lpla/userscripts/main/itaca.user.js
-// @supportURL  https://github.com/lpla/userscripts/issues
+// @updateURL    https://raw.githubusercontent.com/lpla/userscripts/main/icata.user.js
+// @downloadURL  https://raw.githubusercontent.com/lpla/userscripts/main/itaca.user.js
+// @supportURL   https://github.com/lpla/userscripts/issues
 // ==/UserScript==
 
 (function() {
@@ -152,10 +152,19 @@
                     if (markInputElement) {
                         markInputElement.value = extractedMark;
                         markInputElement.dispatchEvent(new Event('input', { bubbles: true }));
+                        markInputElement.dispatchEvent(new Event('change', { bubbles: true }));
+                        markInputElement.dispatchEvent(new Event('blur', { bubbles: true }));
                     }
                 }
             }
         });
+
+        // Trigger the update button
+        const updateButton = document.getElementById('imc-bt-guarda-avaluacio');
+        if (updateButton) {
+            updateButton.disabled = false;
+            updateButton.click();
+        }
     }
 
     function formatExcelName(name) {
