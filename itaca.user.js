@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         ITACA MD2 docent.edu.gva.es - Importador de Calificaciones y Observaciones
 // @namespace    https://lpla.github.io/
-// @version      0.3
-// @description  Importa calificaciones y observaciones desde un archivo Excel a la plataforma "mòdul docent 2" (MD2) de ITACA, configurando las columnas necesarias y permitiendo minimizar el UI.
+// @version      0.3.1
+// @description  Importa calificaciones y observaciones desde un archivo Excel a la plataforma "mòdul docent 2" (MD2) de ITACA.
 // @author       lpla
 // @match        https://docent.edu.gva.es/md-front/www/*
-// @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+// @require      https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js
 // @grant        none
 // @updateURL    https://raw.githubusercontent.com/lpla/userscripts/main/icata.user.js
 // @downloadURL  https://raw.githubusercontent.com/lpla/userscripts/main/itaca.user.js
@@ -14,6 +14,25 @@
 
 (function() {
     'use strict';
+
+    // Función que detecta si se está en la vista de un aula basándose en la URL.
+    // Se espera que la URL tenga el formato:
+    // #centre/<centro>/grup/<grupo>/avaluacio/<evaluacion>/dades/<datos>
+    function isInClassroom() {
+        const hash = window.location.hash;
+        const regex = /^#centre\/\d+\/grup\/\d+\/avaluacio\/\d+\/dades\/[\d;A-Z,]+$/;
+        return regex.test(hash);
+    }
+
+    // Función que crea el disclaimer con el espaciado adecuado.
+    function getDisclaimerElement() {
+        const disclaimer = document.createElement('p');
+        disclaimer.style.fontSize = '0.6em';
+        disclaimer.style.margin = '10px 0';
+        disclaimer.style.color = 'white';
+        disclaimer.textContent = "Todos los datos introducidos se procesan en este ordenador y no se mandan ni se procesan en ningún servidor externo.";
+        return disclaimer;
+    }
 
     // Crear contenedor principal del plugin (ancho ampliado)
     const pluginContainer = document.createElement('div');
@@ -42,6 +61,14 @@
     headerTitle.textContent = 'Importador de Calificaciones';
     pluginHeader.appendChild(headerTitle);
 
+    // Pequeño texto de autoría debajo del título
+    const devCredit = document.createElement('div');
+    devCredit.style.fontSize = '0.6em';
+    devCredit.style.margin = '10px 0';
+    devCredit.style.textAlign = 'center';
+    devCredit.innerHTML = 'Desarrollado por <a href="https://github.com/lpla" target="_blank" style="color: white; text-decoration: underline;">lpla</a>; soporte Excel por <a href="https://docs.sheetjs.com" target="_blank" style="color: white; text-decoration: underline;">SheetJS</a>';
+
+    // Botón para minimizar/restaurar
     const minimizeButton = document.createElement('button');
     minimizeButton.id = 'minimizeButton';
     minimizeButton.textContent = '–';
@@ -53,21 +80,26 @@
     pluginHeader.appendChild(minimizeButton);
 
     pluginContainer.appendChild(pluginHeader);
+    // Insertar el crédito debajo del header
+    pluginContainer.appendChild(devCredit);
 
-    // Contenedor del contenido del plugin
+    // Contenedor del contenido del plugin (se actualizará según el modo)
     const pluginContent = document.createElement('div');
     pluginContent.id = 'pluginContent';
     pluginContent.style.padding = '5px';
     pluginContent.style.background = '#576670';
+    pluginContainer.appendChild(pluginContent);
+    document.body.appendChild(pluginContainer);
 
-    // Crear el selector de archivo
+    // Contenedor de controles (selector de archivo e inputs) a mostrar en aula
+    const controlsContainer = document.createElement('div');
+    // Selector de archivo
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.xlsx, .xls';
     fileInput.style.width = '100%';
-    pluginContent.appendChild(fileInput);
-
-    // Crear el contenedor de configuración
+    controlsContainer.appendChild(fileInput);
+    // Contenedor de configuración (inputs para columnas y mensaje de estado)
     const configDiv = document.createElement('div');
     configDiv.style.marginTop = '5px';
     configDiv.innerHTML = `
@@ -82,10 +114,36 @@
         </label>
         <div id="statusMsg" style="margin-top:5px; font-weight:bold;"></div>
     `;
-    pluginContent.appendChild(configDiv);
+    controlsContainer.appendChild(configDiv);
+    fileInput.addEventListener('change', handleFile, false);
 
-    pluginContainer.appendChild(pluginContent);
-    document.body.appendChild(pluginContainer);
+    // Función para actualizar la interfaz del plugin según la URL
+    function updatePluginUI() {
+        if (!isInClassroom()) {
+            // No se está en aula: mostrar instrucciones
+            if (pluginContent.getAttribute('data-mode') !== 'instructions') {
+                pluginContent.innerHTML = '';
+                const instructions = document.createElement('p');
+                instructions.style.padding = '5px';
+                instructions.style.color = 'white';
+                instructions.textContent = 'Primero, acceda a la pantalla de las calificaciones de un grupo en una evaluación concreta para usar esta herramienta.';
+                pluginContent.appendChild(instructions);
+                pluginContent.appendChild(getDisclaimerElement());
+                pluginContent.setAttribute('data-mode', 'instructions');
+            }
+        } else {
+            // Se está en aula: mostrar los controles si aún no se han mostrado
+            if (pluginContent.getAttribute('data-mode') !== 'controls') {
+                pluginContent.innerHTML = '';
+                pluginContent.appendChild(controlsContainer);
+                pluginContent.appendChild(getDisclaimerElement());
+                pluginContent.setAttribute('data-mode', 'controls');
+            }
+        }
+    }
+    // Usar el evento hashchange para actualizar la UI y llamar a updatePluginUI inmediatamente.
+    window.addEventListener("hashchange", updatePluginUI);
+    updatePluginUI();
 
     // Funcionalidad de minimizar/restaurar
     minimizeButton.addEventListener('click', function() {
@@ -99,7 +157,7 @@
     });
 
     // Función para mostrar mensajes de estado que desaparecen a los 5 segundos.
-    // Se utiliza el color principal de BLAU (#19afe0) para mensajes normales y el de ROSA (#d1a16d) para errores.
+    // Se usa BLAU (#19afe0) para mensajes normales y ROSA (#d1a16d) para errores.
     function showStatus(message, isError=false) {
         const statusMsg = document.getElementById('statusMsg');
         if (statusMsg) {
@@ -113,8 +171,6 @@
             }, 5000);
         }
     }
-
-    fileInput.addEventListener('change', handleFile, false);
 
     function handleFile(e) {
         const file = e.target.files[0];
@@ -133,7 +189,7 @@
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
                 // Se asume que la primera fila contiene cabeceras
                 const studentData = jsonData.slice(1);
-                // Obtener índices configurados (se introducen en base 1 y se convierten a base 0)
+                // Obtener índices configurados (los valores se introducen en base 1 y se convierten a base 0)
                 const colName = parseInt(document.getElementById('col-name').value, 10) - 1;
                 const colMark = parseInt(document.getElementById('col-mark').value, 10) - 1;
                 const colObservation = parseInt(document.getElementById('col-observation').value, 10) - 1;
@@ -321,5 +377,4 @@
             console.warn('No se encontró el botón de guardar evaluación.');
         }
     }
-
 })();
